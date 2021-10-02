@@ -32,7 +32,7 @@ void setup() {
   pubsubClient.setServer(mqtt_host, broker_port);
 }
 
-void wifi_setup() {  
+void wifi_setup() {
   WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   Serial.println("Conectando a rede: " + String(ssid));
@@ -62,7 +62,7 @@ void reconnect() {
   while (!pubsubClient.connected()) {
     Serial.print("Conectando ao MQTT...");
     bool isConnected = pubsubClient.connect("Client-ID", mqtt_user, secret);
-    
+
     if (isConnected) {
       Serial.println("connected");
       pubsubClient.publish(topic, "Conectado");
@@ -75,6 +75,19 @@ void reconnect() {
   }
 }
 
+void publish_topic() {
+  piezo = analogRead(a0_pin);
+
+  if (piezo > 300 && piezo < 700) {
+    digitalWrite(d5_led, HIGH);
+    Serial.println("Tom ao bater na porta: " + String(piezo));
+    pubsubClient.publish(topic, "KNOCKING_DOOR");
+    delay(2000);
+  } else {
+    digitalWrite(d5_led, LOW);
+  }
+}
+
 void loop() {
   if (!pubsubClient.connected()) {
     reconnect();
@@ -83,15 +96,6 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED) {
     wifi_setup();
   }
-  
 
-//  piezo = analogRead(a0_pin);
-//
-//  if(piezo > 300 && piezo < 700) {
-//    digitalWrite(d5_led, HIGH);
-//    Serial.println("Tom ao bater na porta: " + String(piezo));
-//    delay(2000);
-//  } else {
-//    digitalWrite(d5_led, LOW);
-//  }
+  publish_topic();
 }
