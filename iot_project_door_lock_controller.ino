@@ -14,6 +14,9 @@ const char* secret = "xxxxxxx";
 const char* topic = "demo_controller";
 
 int piezo = 0;
+int posit = 0;
+int secret_knock[5] = {345, 350, 660, 440, 580};
+int door_knock[5] = {};
 
 WiFiClient wifiClient;
 PubSubClient pubsubClient(wifiClient);
@@ -41,12 +44,12 @@ void wifi_setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
-    digitalWrite(LED_BUILTIN, 1);
+    digitalWrite(LED_BUILTIN, HIGH);
   }
 
   Serial.println("");
   Serial.println("WiFi conectado");
-  digitalWrite(LED_BUILTIN, 0);
+  digitalWrite(LED_BUILTIN, LOW);
 
   Serial.print("IP inicial (DHCP): ");
   Serial.println(WiFi.localIP());
@@ -79,12 +82,21 @@ void publish_topic() {
   piezo = analogRead(a0_pin);
 
   if (piezo > 300 && piezo < 700) {
-    digitalWrite(d5_led, HIGH);
-    Serial.println("Tom ao bater na porta: " + String(piezo));
+    if (piezo >= secret_knock[posit] * 0.95 && piezo <= secret_knock[posit] * 1.05) {
+      door_knock[posit] = piezo;
+      Serial.println("Idx: " + String(posit) + "," + String(secret_knock[posit]) + ", " + String(door_knock[posit]));
+      digitalWrite(d5_led, HIGH);
+      delay(500);
+      ++posit;
+    }
+    digitalWrite(d5_led, LOW);
+  }
+
+  if (posit == 5) {
+    Serial.println("Sending message to: " + String(topic));
     pubsubClient.publish(topic, "KNOCKING_DOOR");
     delay(2000);
-  } else {
-    digitalWrite(d5_led, LOW);
+    posit = 0;
   }
 }
 
