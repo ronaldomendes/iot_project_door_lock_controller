@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Servo.h>
 
 #define d5_led D5
 #define a0_pin A0
@@ -17,15 +18,21 @@ int piezo = 0;
 int posit = 0;
 int secret_knock[5] = {345, 350, 660, 440, 580};
 int door_knock[5] = {};
+unsigned long last_time = 0;
 
+Servo servo;
 WiFiClient wifiClient;
 PubSubClient pubsubClient(wifiClient);
 
 void wifi_setup();
 void reconnect();
 void publish_topic();
+void move_servo();
+void callback(char* topic, byte* payload, unsigned int length);
 
 void setup() {
+  servo.attach(D2); // D2 do NodeMCU
+
   pinMode(LED_BUILTIN, OUTPUT); // led do NodeMCU
   pinMode(d5_led, OUTPUT);
   digitalWrite(d5_led, LOW);
@@ -33,12 +40,14 @@ void setup() {
   delay(5000);
   wifi_setup();
   pubsubClient.setServer(mqtt_host, broker_port);
+  pubsubClient.setCallback(callback);
 }
 
 void wifi_setup() {
   WiFi.disconnect();
   WiFi.mode(WIFI_STA);
-  Serial.println("Conectando a rede: " + String(ssid));
+  Serial.print("Conectando a rede: ");
+  Serial.println(ssid);
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -63,14 +72,14 @@ void wifi_setup() {
 
 void reconnect() {
   while (!pubsubClient.connected()) {
-    Serial.print("Conectando ao MQTT...");
+    Serial.print("Conectando ao MQTT... ");
     bool isConnected = pubsubClient.connect("Client-ID", mqtt_user, secret);
 
     if (isConnected) {
       Serial.println("connected");
       pubsubClient.publish(topic, "Conectado");
     } else {
-      Serial.print("failed, rc=");
+      Serial.print("failed, rc= ");
       Serial.print(pubsubClient.state());
       Serial.println(" try again in 5 seconds");
       delay(5000);
@@ -84,7 +93,12 @@ void publish_topic() {
   if (piezo > 300 && piezo < 700) {
     if (piezo >= secret_knock[posit] * 0.95 && piezo <= secret_knock[posit] * 1.05) {
       door_knock[posit] = piezo;
-      Serial.println("Idx: " + String(posit) + "," + String(secret_knock[posit]) + ", " + String(door_knock[posit]));
+      Serial.print("Idx: ");
+      Serial.print(posit);
+      Serial.print(", ");
+      Serial.print(secret_knock[posit]);
+      Serial.print(", ");
+      Serial.println(door_knock[posit]);
       digitalWrite(d5_led, HIGH);
       delay(500);
       ++posit;
@@ -92,18 +106,55 @@ void publish_topic() {
     digitalWrite(d5_led, LOW);
   }
 
+  //  metodo teste para zerar o toque secreto
+  unsigned long now = millis();
+  if (now - last_time > 5000 and posit != 0) {
+    last_time = now;
+    Serial.println("you failed... try again");
+    posit = 0;
+  }
+
   if (posit == 5) {
-    Serial.println("Sending message to: " + String(topic));
+    Serial.print("Sending message to: ");
+    Serial.println(topic);
     pubsubClient.publish(topic, "KNOCKING_DOOR");
     delay(2000);
     posit = 0;
   }
 }
 
+void callback(char* topic, byte* payload, unsigned int length) {
+  String msg;
+  Serial.print("Mensagem [");
+  Serial.print(topic);
+  Serial.println("]");
+  for (int i = 0; i < length; i++) {
+    char aux = (char) payload[i];
+    Serial.print(aux);
+    msg += aux;
+  }
+
+  if (msg == String("KNOCKING_DOOR")) {
+    move_servo();
+  } else {
+    Serial.println("Oops!!!");
+  }
+}
+
+void move_servo() {
+  Serial.println("Unlocking the door...");
+  servo.write(90);
+  delay(1000);
+  servo.write(0);
+  delay(1000);
+}
+
 void loop() {
   if (!pubsubClient.connected()) {
     reconnect();
   }
+
+  pubsubClient.loop();
 
   if (WiFi.status() != WL_CONNECTED) {
     wifi_setup();
