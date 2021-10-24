@@ -125,9 +125,8 @@ void publish_topic() {
 
 void callback(char* topic, byte* payload, unsigned int length) {
   String msg;
-  Serial.print("Mensagem [");
+  Serial.print("New message from: ");
   Serial.print(topic);
-  Serial.println("]");
   for (int i = 0; i < length; i++) {
     char aux = (char) payload[i];
     Serial.print(aux);
@@ -142,7 +141,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void move_servo() {
-  Serial.println("Unlocking the door...");
+  Serial.println("\nUnlocking the door...");
   servo.write(90);
   delay(1000);
   servo.write(0);
@@ -152,6 +151,7 @@ void move_servo() {
 void loop() {
   if (!pubsubClient.connected()) {
     reconnect();
+    pubsubClient.subscribe(topic);
   }
 
   pubsubClient.loop();
