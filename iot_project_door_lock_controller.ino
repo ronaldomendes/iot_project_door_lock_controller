@@ -126,7 +126,7 @@ void publish_topic() {
 void callback(char* topic, byte* payload, unsigned int length) {
   String msg;
   Serial.print("New message from: ");
-  Serial.print(topic);
+  Serial.println(topic);
   for (int i = 0; i < length; i++) {
     char aux = (char) payload[i];
     Serial.print(aux);
