@@ -4,13 +4,14 @@
 
 #define d5_led D5
 #define a0_pin A0
+#define MQTT_KEEPALIVE 500
 
 const char* ssid = "";
 const char* password = "";
 const char* ip = "192.168.15.50";
-const char* mqtt_host = "xxxxxxx.cloud.shiftr.io";
+const char* mqtt_host = "controller.cloud.shiftr.io";
 const int broker_port = 1883;
-const char* mqtt_user = "xxxxxxx";
+const char* mqtt_user = "controller";
 const char* secret = "xxxxxxx";
 const char* topic = "demo_controller";
 
@@ -73,11 +74,12 @@ void wifi_setup() {
 void reconnect() {
   while (!pubsubClient.connected()) {
     Serial.print("Conectando ao MQTT... ");
-    bool isConnected = pubsubClient.connect("Client-ID", mqtt_user, secret);
+    bool isConnected = pubsubClient.connect("NodeClient", mqtt_user, secret);
 
     if (isConnected) {
       Serial.println("connected");
       pubsubClient.publish(topic, "Conectado");
+      pubsubClient.setKeepAlive(MQTT_KEEPALIVE);
     } else {
       Serial.print("failed, rc= ");
       Serial.print(pubsubClient.state());
@@ -133,10 +135,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
     msg += aux;
   }
 
-  if (msg == String("KNOCKING_DOOR")) {
+  if (msg == String("ALLOW_ACCESS")) {
     move_servo();
   } else {
-    Serial.println("Oops!!!");
+    Serial.println("\nOops!!!");
   }
 }
 
