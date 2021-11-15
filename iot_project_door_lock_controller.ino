@@ -4,7 +4,7 @@
 
 #define d5_led D5
 #define a0_pin A0
-#define MQTT_KEEPALIVE 500
+#define MQTT_KEEPALIVE 600
 
 const char* ssid = "";
 const char* password = "";
@@ -42,6 +42,7 @@ void setup() {
   wifi_setup();
   pubsubClient.setServer(mqtt_host, broker_port);
   pubsubClient.setCallback(callback);
+  pubsubClient.setKeepAlive(MQTT_KEEPALIVE);
 }
 
 void wifi_setup() {
@@ -79,7 +80,6 @@ void reconnect() {
     if (isConnected) {
       Serial.println("connected");
       pubsubClient.publish(topic, "Conectado");
-      pubsubClient.setKeepAlive(MQTT_KEEPALIVE);
     } else {
       Serial.print("failed, rc= ");
       Serial.print(pubsubClient.state());
