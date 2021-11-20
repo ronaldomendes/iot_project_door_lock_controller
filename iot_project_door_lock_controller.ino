@@ -144,10 +144,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void move_servo() {
   Serial.println("\nUnlocking the door...");
-  servo.write(90);
-  delay(1000);
-  servo.write(0);
-  delay(1000);
+  for (int pos = 0; pos <= 90; pos++) {
+    servo.write(pos);
+    delay(150);
+  }
 }
 
 void loop() {
